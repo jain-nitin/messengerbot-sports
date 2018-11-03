@@ -1,0 +1,1222 @@
+const 
+  request = require('request'),
+  express = require('express'),
+  body_parser = require('body-parser'),
+  app = express().use(body_parser.json()); // creates express http server
+
+function addproperties() {
+//  console.log('inside add properties')
+/***  console.log('here')
+  let request_body2 = { 
+    "get_started":{
+      "payload":"get_started"
+    }
+  }
+  request({
+    "uri": "https://graph.facebook.com/v2.6/me/messenger_profile?fields=get_started",
+    //"fields": request_body5,
+    "qs": { "access_token": PAGE_ACCESS_TOKEN },
+    "method": "POST",
+    "json": request_body2
+    }, (err, res, body) => {
+    if (!err) {
+      console.log('get started added')
+      } else {
+      console.error("Unable add get started" + err);
+        }
+    });
+
+  //let request_body5 = { "fields" : ["get_started","persistent_menu"]};
+  let request_body4 = {
+ 
+              "persistent_menu":[
+                  {
+                    "locale":"default",
+                    "composer_input_disabled": false,
+                    "call_to_actions":[
+                      {
+                        "title":"Check out sports options",
+                        "type":"postback",
+                        "payload":"get_started",
+
+                      }
+                    ]
+                  }
+              ]
+            }
+   
+  
+    request({
+    "uri": "https://graph.facebook.com/v2.6/me/messenger_profile?fields=persistent_menu",
+    //"fields": request_body5,
+    "qs": { "access_token": PAGE_ACCESS_TOKEN },
+    "method": "POST",
+    "json": request_body4
+    }, (err, res, body) => {
+    if (!err) {
+      console.log('get started added')
+      } else {
+      console.error("Unable add get started" + err);
+        }
+    });
+***/    
+    
+  let request_body5 = {
+   "data": [
+        {
+          "get_started":{
+            "payload":"get_started"
+          },
+          "persistent_menu":[
+                  {
+                    "locale":"default",
+                    "composer_input_disabled": false,
+                    "call_to_actions":[
+                      {
+                        "title":"Check out ports ptions",
+                        "type":"postback",
+                        "payload":"get_started",
+
+                      }
+                    ]
+                  }
+              ]
+      }
+   ]
+}
+      request({
+    "uri": "https://graph.facebook.com/v2.6/me/messenger_profile?fields=[persistent_menu,get_started]",
+    //"fields": request_body5,
+    "qs": { "access_token": PAGE_ACCESS_TOKEN },
+    "method": "POST",
+    "json": request_body5
+    }, (err, res, body) => {
+    if (!err) {
+      console.log('get started added')
+      } else {
+      console.error("Unable add get started" + err);
+        }
+    });
+}  
+
+// Sets server port and logs message on success
+app.listen(process.env.PORT || 1337, () => console.log('webhook is listening'));
+//console.log('about to call add properties')
+addproperties();
+// Accepts POST requests at /webhook endpoint
+app.post('/webhook', (req, res) => {  
+
+  // Parse the request body from the POST
+  let body = req.body;
+
+  // Check the webhook event is from a Page subscription
+  if (body.object === 'page') {
+
+    // Iterate over each entry - there may be multiple if batched
+    body.entry.forEach(function(entry) {
+
+      // Get the webhook event. entry.messaging is an array, but 
+      // will only ever contain one event, so we get index 0
+      let webhook_event = entry.messaging[0];
+      console.log(webhook_event);
+      
+      // Get the sender PSID
+      let sender_psid = webhook_event.sender.id;
+      console.log('Sender PSID: ' + sender_psid);
+      
+      // Check if the event is a message or postback and
+      // pass the event to the appropriate handler function
+      if (webhook_event.message) {
+        if (webhook_event.message.quick_reply) {
+      handlePostback(sender_psid, webhook_event.message.quick_reply);
+        console.log("quickreply//////"+webhook_event.message.quick_reply);
+      }else handleMessage(sender_psid, webhook_event.message);        
+      } else if (webhook_event.postback) {
+      
+        console.log('logging');
+        handlePostback(sender_psid, webhook_event.postback);
+      } 
+      
+    });
+
+    // Return a '200 OK' response to all events
+    res.status(200).send('EVENT_RECEIVED');
+
+  } else {
+    // Return a '404 Not Found' if event is not from a page subscription
+    res.sendStatus(404);
+  }
+
+});
+
+// Accepts GET requests at the /webhook endpoint
+app.get('/webhook', (req, res) => {
+  
+  /** UPDATE YOUR VERIFY TOKEN **/
+  const VERIFY_TOKEN = "EaIoT1b34";
+  
+  // Parse params from the webhook verification request
+  let mode = req.query['hub.mode'];
+  let token = req.query['hub.verify_token'];
+  let challenge = req.query['hub.challenge'];
+    
+  // Check if a token and mode were sent
+  if (mode && token) {
+  
+    // Check the mode and token sent are correct
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      
+      // Respond with 200 OK and challenge token from the request
+      console.log('WEBHOOK_VERIFIED');
+      res.status(200).send(challenge);
+    
+    } else {
+      // Responds with '403 Forbidden' if verify tokens do not match
+      res.sendStatus(403);      
+    }
+  }
+});
+
+function firstEntity(nlp, name) {
+  return nlp && nlp.entities && nlp.entities[name] && nlp.entities[name][0];
+}
+
+// Handles messages events
+function handleMessage(sender_psid, received_message) {
+  let response1;
+  let response2;
+  const phoneentity = firstEntity(received_message.nlp, 'phone_number');
+  const emailentity = firstEntity(received_message.nlp, 'email');
+  console.log(received_message.nlp);
+  if (phoneentity && phoneentity.confidence > 0.8) {
+    response2={"text": "Thanks for sharing your number. Just the last step now - please share your email ID so that we can share booking details!"};
+  } else if (emailentity && emailentity.confidence > 0.8) {
+      response1={"text": "Got the email id, we will send the details."};
+      response2 = {
+        "attachment": {
+          "type": "template",
+          "payload": {
+            "template_type": "generic",
+            "elements": [{
+              "title": "You're all set!",
+              //"subtitle": "",
+
+              "buttons": [
+                {
+                  "type": "web_url",
+                  "title": "See FAQs",
+                  "url":"https://gspr.to/faq",
+
+
+                },
+                {
+                  "type": "web_url",
+                  "title": "Download App",
+                  "url":"http://gosporto.com/app",
+
+
+                }
+
+              ],
+            }]
+          }
+        }
+      }
+      callSendAPI(sender_psid, response1);
+    
+  } else {
+  // Check if the message contains text
+     
+  }
+  // Sends the response message
+  callSendAPI(sender_psid, response2);
+
+}
+
+// Handles messaging_postbacks events
+function handlePostback(sender_psid, received_postback) {
+  let response1;
+  let response2;
+  //console.log("***************2");
+  // Get the payload for the postback
+  let payload = received_postback.payload;
+
+  // Set the response based on the postback payload
+  if (payload === 'get_started') {    
+
+    // Create the payload for a basic text message
+    console.log("*************1");
+    response1={"text": "Hi there 👋, let's get you playing soon. Which sport are you keen to play?"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [
+            {
+            "title": "Swimming",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool-huda-gymkhana-sector-29.jpg",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Swimming",
+                "payload": "sp9wlcm",
+              }
+            ],
+          },
+            {
+            "title": "Cricket",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/cricket.png",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Cricket",
+                "payload": "sp1wlcm",
+              }
+            ],
+          },
+           {
+            "title": "Badminton",
+            //"subtitle": "Tap a button to answer.",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/badminton-heritage.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Badminton",
+                "payload": "sp2wlcm",
+              }
+            ],
+          },
+                      {
+            "title": "Football",
+            //"subtitle": "Tap a button to answer.",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/football.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Football",
+                "payload": "sp3wlcm",
+              }
+            ],
+          },
+          {
+            "title": "Tennis",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tennis.png",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Tennis",
+                "payload": "sp4wlcm",
+              }
+            ],
+          },
+          {
+            "title": "Squash",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/squash-vclub.png",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Squash",
+                "payload": "sp5wlcm",
+              }
+            ],
+          },
+                      {
+            "title": "Basketball",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/basketball.png",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Basketball",
+                "payload": "sp6wlcm",
+              }
+            ],
+          },
+                      {
+            "title": "Table Tennis",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tt.png",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Table Tennis",
+                "payload": "sp7wlcm",
+              }
+            ],
+          },
+                      {
+            "title": "Snooker",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/snooker-florence.png",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Snooker",
+                "payload": "sp8wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+    
+  }
+  else if (payload === 'sp1wlcm') {
+    response1={"text": "Awesome, choose from one of these two Cricket formats:"}
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Box Cricket",
+            "subtitle": "Played with a soft ball in a caged arena. Location: Mass Turf (Sec 54, Gurugram)",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/box-cricket-mass-turf.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Box Cricket",
+                "payload": "fm1-1wlcm",
+              }
+            ],
+          },
+          {
+            "title": "Cricket Nets",
+            "subtitle": "Group nets session with a leather ball. Location: Presidium (Sec 57, Gurugram)",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/cricket-nets-presidium.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Cricet Nets", 
+                "payload": "fm2-1wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    } 
+    callSendAPI(sender_psid, response1);
+  } else if (payload === 'fm1-1wlcm') {
+    response1={"text": "Perfect! You can play your first session for FREE! "}
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to claim your free demo session?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl1-1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl2-1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl3-1wlcm",
+              },
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'fm2-1wlcm') {
+    response1={"text": "Perfect! You can play your first session for FREE! "}
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to claim your free demo session?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl1-1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl2-1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl3-1wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  }  else if (payload === 'sl1-1wlcm') {
+    response2={"text": "You're just 1 step away! ✌🏼 Give us a way to reach you, and we will share the booking details. Please share your 10-digit phone number."};
+    
+  } else if (payload === 'sl1-2wlcm' ) {
+    response2={"text": "You're just 1 step away! ✌🏼 Give us a way to reach you, and we will share the booking details. Please share your 10-digit phone number."};
+    
+  } else if (payload === 'sl1-3wlcm' ) {
+    response2={"text": "You're just 1 step away! ✌🏼 Give us a way to reach you, and we will share the booking details. Please share your 10-digit phone number."};
+    
+  } else if (payload === 'sp2wlcm') {
+    response1={"text": "Awesome! There are 4 amazing indoor courts you can choose from:"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Heritage School",
+            "subtitle": "Sector 62, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/badminton-heritage.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Heritage School",
+                "payload": "vn-2wlcm",
+              }
+            ],
+          },{
+            "title": "Flow Sports",
+            "subtitle": "Sohna Road, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/badminton-flow.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Flow Sports",
+                "payload": "vn-2wlcm",
+              }
+            ],
+          },{
+            "title": "GEMS School",
+            "subtitle": "Sector 49, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/badminton-gems.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "GEMS School",
+                "payload": "vn-2wlcm",
+              }
+            ],
+          },{
+            "title": "Infnity Sports",
+            "subtitle": "Sector 5, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/badminton-infinitys.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Infnity Sports",
+                "payload": "vn-2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'vn-2wlcm') {
+    response1={"text": "Perfect! You can play your first session for FREE! "};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to claim your free demo session?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-2wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-2wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  callSendAPI(sender_psid, response1)
+    //callSendAPI(sender_psid, response2);
+  } else if (payload === 'sl-2wlcm') {
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Almost there! Do you already have a partner or would you like us to match you up with someone?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Have a partner",
+                "payload": "pt1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Need a partner",
+                "payload": "pt2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  }else if (payload === 'sp3wlcm') {
+      response1={"text": "Awesome! We have regular pick-up games at an amazing Astoturf venue. You can play your first session for FREE! "};
+      response2 = {
+        "attachment": {
+          "type": "template",
+          "payload": {
+            "template_type": "generic",
+            "elements": [{
+              "title": "When would you like to join?",
+              //"subtitle": "Tap a button to answer.",
+
+              "buttons": [
+                {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-3wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-3wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-3wlcm",
+              }
+              ],
+            }]
+          }
+        }
+      }
+      callSendAPI(sender_psid, response1);
+  } else if (payload === 'sl-3wlcm') {
+    response1={"text": "You're just 1 step away! ✌🏼 Give us a way to reach you, and we will share the booking details. Please share your 10-digit phone number."};
+    
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'sp6wlcm') {
+      response1={"text": "Awesome! We have regular pick-up games, at a floodlit synthetic court. You can play your first session for FREE! "};
+      response2 = {
+        "attachment": {
+          "type": "template",
+          "payload": {
+            "template_type": "generic",
+            "elements": [{
+              "title": "When would you like to join?",
+              "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/football-heritage.png",
+              //"subtitle": "Tap a button to answer.",
+
+              "buttons": [
+                {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-6wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-6wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-6wlcm",
+              }
+              ],
+            }]
+          }
+        }
+      }
+      callSendAPI(sender_psid, response1);
+  } else if (payload === 'sl-6wlcm') {
+    response1={"text": "You're just 1 step away! ✌🏼 Give us a way to reach you, and we will share the booking details. Please share your 10-digit phone number."};
+    
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'sp4wlcm') {
+    response1={"text": "Awesome! There are 3 great courts you can choose from:"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Eva Tennis",
+            "subtitle": "Sector 45, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tennis-eva.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Eva Tennis",
+                "payload": "vn-4wlcm",
+              }
+            ],
+          },{
+            "title": "Archivers Academy",
+            "subtitle": "Parl Drive, Sector 54 , Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tennis-archivers.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Archivers Academy",
+                "payload": "vn-4wlcm",
+              }
+            ],
+          },{
+            "title": "Sports Maidan",
+            "subtitle": "Sector 58, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tennis-sports-maidan.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Sports Maidan",
+                "payload": "vn-4wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'vn-4wlcm') {
+    response1={"text": "Perfect! You can play your first session for FREE! "};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to play?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-4wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-4wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-4wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  callSendAPI(sender_psid, response1)
+    //callSendAPI(sender_psid, response2);
+  } else if (payload === 'sl-4wlcm') {
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Almost there! Do you already have a partner or would you like us to match you up with someone?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Have a partner",
+                "payload": "pt1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Need a partner",
+                "payload": "pt2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  }else if (payload === 'sp5wlcm') {
+    response1={"text": "Awesome! There are 3 great courts you can choose from:"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Club Florence",
+            "subtitle": "Sector 56, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/squash-vclub.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Club Florence",
+                "payload": "vn-5wlcm",
+              }
+            ],
+          },{
+            "title": "V-Club",
+            "subtitle": "Sohna Road , Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/squash-vclub.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "V-Club",
+                "payload": "vn-5wlcm",
+              }
+            ],
+          },{
+            "title": "GEMS School",
+            "subtitle": "Sector 49, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/squash-vclub.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "GEMS School",
+                "payload": "vn-5wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'vn-5wlcm') {
+    response1={"text": "Perfect! You can play your first session for FREE! "};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to play?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-5wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-5wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-5wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  callSendAPI(sender_psid, response1)
+    //callSendAPI(sender_psid, response2);
+  } else if (payload === 'sl-5wlcm') {
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Almost there! Do you already have a partner or would you like us to match you up with someone?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Have a partner",
+                "payload": "pt1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Need a partner",
+                "payload": "pt2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  }else if (payload === 'sp7wlcm') {
+    response1={"text": "Awesome! We have 2 amazing venues you can choose from:"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Club Florence",
+            "subtitle": "Sector 56, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tt-florence.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Club Florence",
+                "payload": "vn-7wlcm",
+              }
+            ],
+          },{
+            "title": "V-Club",
+            "subtitle": "Sohna Road , Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/02/tt-vclub.png",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "V-Club",
+                "payload": "vn-7wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  }else if (payload === 'vn-7wlcm') {
+    response1={"text": "Perfect! You can play your first session for FREE! "};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to play?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-7wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-7wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-7wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  callSendAPI(sender_psid, response1)
+    //callSendAPI(sender_psid, response2);
+  } else if (payload === 'sl-7wlcm') {
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Almost there! Do you already have a partner or would you like us to match you up with someone?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Have a partner",
+                "payload": "pt1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Need a partner",
+                "payload": "pt2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  }else if (payload === 'sp8wlcm') {
+    response1={"text": "Awesome! We have an amazing Snooker facility at Club Florence (Sec 56, Gurugram). Your first session is Free"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": " When would you like to play?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekend - Morning",
+                "payload": "sl-8wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend - Evening",
+                "payload": "sl-8wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-8wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  callSendAPI(sender_psid, response1)
+    //callSendAPI(sender_psid, response2);
+  } else if (payload === 'sl-8wlcm') {
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Almost there! Do you already have a partner or would you like us to match you up with someone?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              {
+                "type": "postback",
+                "title": "Have a partner",
+                "payload": "pt1wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Need a partner",
+                "payload": "pt2wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+  } else if (payload === 'sp9wlcm') {
+    response1={"text": "Choose from the best pools in Gurgaon!:"};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "Huda Gymkhana",
+            "subtitle": "Sector 29, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool-huda-gymkhana-sector-29.jpg",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Huda Gymkhana",
+                "payload": "vn-9wlcm",
+              }
+            ],
+          },{
+            "title": "Shalom Presidency School",
+            "subtitle": "Sector 56, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool-shalom-sector-56.jpg",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Shalom Presidency School",
+                "payload": "vn-9wlcm",
+              }
+            ],
+          },{
+            "title": "GEMS School",
+            "subtitle": "Sector 49, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool-gems-sector-49.jpg",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "GEMS School",
+                "payload": "vn-9wlcm",
+              }
+            ],
+          },{
+            "title": "Peach Tree",
+            "subtitle": "Sector 43, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool-peach-tree-sector-43.jpg",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Peach Tree",
+                "payload": "vn-9wlcm",
+              }
+            ],
+          },{
+            "title": "Delhi Public School",
+            "subtitle": "DLF Phase - 2, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool_dps-dlf-phase-2.jpg",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Delhi Public School",
+                "payload": "vn-9wlcm",
+              }
+            ],
+          },{
+            "title": "V-Club (Premium)",
+            "subtitle": "Sector 48, Gurugram",
+            "image_url":"http://blog.gosporto.com/wp-content/uploads/2018/04/swimming-pool-v-club-sector-48.jpg",
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "V-Club (Premium)",
+                "payload": "vn-9wlcm",
+              }
+            ],
+          }]
+        }
+      }
+    }
+    callSendAPI(sender_psid, response1);
+  } else if (payload === 'vn-9wlcm') {
+    response1 = {"text": "Perfect! You first session is FREE 🆓 "};
+    response2 = {
+      "attachment": {
+        "type": "template",
+        "payload": {
+          "template_type": "generic",
+          "elements": [{
+            "title": "When would you like to swim?",
+            //"subtitle": "Tap a button to answer.",
+            
+            "buttons": [
+              
+              {
+                "type": "postback",
+                "title": "Weekday - Morning",
+                "payload": "sl-9wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekday - Evening",
+                "payload": "sl-9wlcm",
+              },
+              {
+                "type": "postback",
+                "title": "Weekend",
+                "payload": "sl-9wlcm",
+              },
+              
+            ],
+          }]
+        }
+      }
+    };
+    
+  callSendAPI(sender_psid, response1);
+    //callSendAPI(sender_psid, response2);
+  }  else if (payload === 'pt1wlcm' || 'pt2wlcm') {
+    response1={"text": "You're just 1 step away! ✌🏼 Give us a way to reach you, and we will share the booking details. Please share your 10-digit phone number."};
+    
+    callSendAPI(sender_psid, response1);
+  } 
+  // Send the message to acknowledge the postback
+  //console.log(response2);
+  callSendAPI(sender_psid, response2);
+
+}
+
+// Sends response messages via the Send API
+function callSendAPI(sender_psid, response) {
+  // Construct the message body
+  let request_body = {
+    "recipient": {
+      "id": sender_psid
+    },
+    "message": response
+  }
+  
+
+  // Send the HTTP request to the Messenger Platform
+  request({
+    "uri": "https://graph.facebook.com/v2.6/me/messages",
+    "qs": { "access_token": PAGE_ACCESS_TOKEN },
+    "method": "POST",
+    "json": request_body
+  }, (err, res, body) => {
+    if (!err) {
+      console.log('message sent!')
+    } else {
+      console.error("Unable to send message:" + err);
+    }
+  }); 
+
+  
+}
