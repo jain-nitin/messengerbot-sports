@@ -5,14 +5,14 @@ This bot is hosted on glitch and written in JS.
 
 Screenshots here:
 
-Triggering the bot
+## Triggering the bot
 
 ![alt text](./goSportoChatbot%20-%20Initialization.png)
 
-Chatting with bot:
+## Chatting with bot:
 
 ![alt text](./goSportoChatbot-GettingDetails.png)
 
-Sharing contact details:
+## Sharing contact details:
 
 ![alt text](./goSportoChatbot-GettingContact.png)
