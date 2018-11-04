@@ -9,3 +9,10 @@ Triggering the bot
 
 ![alt text](./goSportoChatbot%20-%20Initialization.png)
 
+Chatting with bot:
+
+![alt text](./goSportoChatbot-GettingDetails.png)
+
+Sharing contact details:
+
+![alt text](./goSportoChatbot-GettingContact.png)
