@@ -7,5 +7,5 @@ Screenshots here:
 
 Triggering the bot
 
-![alt text](./goSportoChatbot - Initialization.png)
+![alt text](./goSportoChatbot%20-%20Initialization.png)
 
