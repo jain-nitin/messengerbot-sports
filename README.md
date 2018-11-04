@@ -5,3 +5,7 @@ This bot is hosted on glitch and written in JS.
 
 Screenshots here:
 
+Triggering the bot
+
+![alt text](./goSportoChatbot - Initialization.png)
+
